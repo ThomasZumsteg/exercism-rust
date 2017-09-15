@@ -1,14 +1,21 @@
-pub struct Triangle {
-    a: usize,
-    b: usize,
-    c: usize,
+extern crate num;
+
+use num::Num;
+
+pub struct Triangle<N>
+    where N: Num + PartialOrd + Copy, {
+    a: N,
+    b: N,
+    c: N,
 }
 
-impl Triangle {
-    pub fn build(sides: [usize; 3]) -> Result<Triangle, &'static str> {
+impl<N> Triangle<N>
+    where N: Num + PartialOrd + Copy, {
+    pub fn build(sides: [N; 3]) -> Result<Triangle<N>, &'static str> {
         let mut sorted_sides = sides.to_vec();
-        sorted_sides.sort();    
-        if sorted_sides[2] <= 0 { Err("Zero length sides are not allowed") }
+        sorted_sides
+            .sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        if sorted_sides[2] <= N::zero() { Err("Zero length sides are not allowed") }
         else if sorted_sides[2] > sorted_sides[1] + sorted_sides[0] {
             Err("Not a valid triangle")
         } else { 
