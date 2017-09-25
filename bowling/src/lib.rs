@@ -1,35 +1,32 @@
 pub struct BowlingGame { 
-    frame: usize,
-    pins: [u16; 22]
+    second: bool,
+    pins: Vec<u16>,
 }
 
 impl BowlingGame {
-    pub fn new() -> BowlingGame { BowlingGame { frame: 0, pins: [0; 22]} }
+    pub fn new() -> BowlingGame { BowlingGame { pins: Vec::new(), second: false} }
 
     pub fn roll(&mut self, pins: u16) -> Result<&BowlingGame, &'static str> {
-        if 10 < pins { return Err("Invalid number of pins") } 
-        else if self.frame >= 22 { return Err("Game is over") }
-        self.pins[self.frame] = pins;
-        if (self.frame == 20 || self.frame == 21) && self.pins[18] == 10 { self.frame += 1}
-        else if self.frame == 20 && (self.pins[18] + self.pins[19] == 10) { self.frame += 2}
-        else if pins == 10 && self.frame % 2 == 0 { self.frame += 2 }
-        else { self.frame += 1 }
+        if 10 < pins || (self.second && 10 < pins + self.pins.last().unwrap()){ 
+            return Err("Invalid number of pins") 
+        } else if self.score().is_ok() { return Err("Game is over") }
+        self.pins.push(pins);
+        self.second = if pins != 10 { !self.second } else { false };
         Ok(self)
     }
 
     pub fn score(&self) -> Result<u16, &'static str> {
-        println!("Score {:?}", self.pins);
-        if self.frame < 22 { return Err("Game not over"); }
-        let mut total = 0;
-        for mut f in 0..10 {
-            f *= 2;
-            if self.pins[f] == 10 { 
-                total += 10 + self.pins[f+2] + self.pins[f+3];
-            } else if self.pins[2*f] + self.pins[f + 1] == 10 {
-                total += 10 + self.pins[f + 2];
-            } else {
-                total += self.pins[f] + self.pins[f+1]
-            }
+        let (mut total, mut f) = (0, 0);
+        let pins = &self.pins;
+        for _ in 0..10 {
+            if let (Some(&first), Some(&second)) = (pins.get(f), pins.get(f+1)) {
+                total += first + second;
+                if first == 10 || first + second == 10 { 
+                    if let Some(&third) = pins.get(f+2) { total += third; }
+                    else { return Err("Game not done"); }
+                }
+                f += if first == 10 { 1 } else { 2 };
+            } else { return Err("Game not done"); }
         }
         Ok(total)
     }
