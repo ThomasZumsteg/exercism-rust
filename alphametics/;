@@ -1,0 +1,38 @@
+use std::collections::HashMap;
+use std::collections::HashSet;
+use std::iter::FromIter;
+
+pub fn solve(puzzle: &str) -> Option<HashMap<char, u8>> {
+    let equation = Equation::parse(puzzle).unwrap();
+    let perms = permutations(equation.letters(), vec![0,1,2,3,4,5,6,7,8,9]);
+    let solution = perms.iter().filter(|m| equation.evaluate(m));
+    None
+}
+
+fn permutations<K, V>(keys: Vec<K>, value: Vec<V>) -> Vec<HashMap<K, V>> {
+    unimplemented!()
+}
+
+struct Equation { left: String, right: Vec<String> }
+
+impl Equation {
+    fn parse(source: &str) -> Option<Equation> {
+        let sides = source.split("==").collect::<Vec<&str>>();
+        let right = sides[1];
+        let left = sides[0].split(" + ").collect::<Vec<&str>>();
+        println!("{:?}:{:?}", left, right);
+        None
+    }
+    fn letters(&self) -> HashSet<char> {
+        let mut chars = HashSet::from_iter(self.left.chars(chars())iter());
+        for word in self.right {
+            for c in words.char() { chars.insert(c) }
+        }
+        chars
+    }
+    fn evaluate(&self, map: &HashMap<char, u8>) -> bool{ 
+        unimplemented!()
+    }
+}
+
+
