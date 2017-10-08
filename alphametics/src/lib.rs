@@ -1,9 +1,11 @@
 use std::collections::HashMap;
+use std::iter;
 
 pub fn solve(puzzle: &str) -> Option<HashMap<char, u8>> {
     let equation = Equation::parse(puzzle).unwrap();
-    println!("{:?}", equation);
-    for e in equation { if e.evaluate() { return Some(e.get_map()) } }
+    for e in equation { 
+        println!("{:?}", e);
+        if e.evaluate() { return Some(e.get_map()) } }
     None
 }
 
@@ -20,15 +22,15 @@ impl Equation {
         let sides = source.split(" == ")
             .map(|s| s.to_string())
             .collect::<Vec<String>>();
-        let right = sides[1].clone();
-        let left = sides[0].split(" + ")
-            .map(|s| s.to_string())
-            .collect::<Vec<String>>();
         Some( Equation{
-            left: left,
-            right: right,
-            letters: Equation::letters(source).iter().enumerate()
-                .map(|(i, &c)| (c, i as u8)).collect(),
+            left: sides[0].split(" + ")
+                .map(|s| s.to_string())
+                .collect::<Vec<String>>(),
+            right: sides[1].clone(),
+            letters: Equation::letters(source).iter()
+                .zip(iter::repeat(0))
+                .map(|(&c, i)| (c, i as u8))
+                .collect(),
             idx: 0,
         })
     }   
@@ -53,14 +55,12 @@ impl Equation {
 
 impl Iterator for Equation {
     type Item = Self;
-    fn next<'a>(&mut self) -> Option<Self::Item> {
+    fn next(&mut self) -> Option<Self::Item> {
         let mut new = self.clone();
         while new.letters[new.idx].1 >= 9 {
             new.letters[new.idx].1 = 0;
             new.idx += 1;
-            if new.idx > new.letters.len() {
-                return None
-            }
+            if new.idx > new.letters.len() { return None }
         }
         unimplemented!()
     }
