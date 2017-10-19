@@ -1,25 +1,39 @@
-// The code below is a stub. Just enough to satisfy the compiler.
-// In order to pass the tests you can add-to or change any of this code.
-
-#[allow(unused_variables)]
 pub fn convert(input: &str) -> Result<String, ()> {
-    let lines = input.split("\n").collect::<Vec<&str>>();
+    let lines = input.split("\n").map(|s| s.to_string()).collect::<Vec<String>>();
     let mut result = String::new();
-    let mut row = 0;
-    if lines.len() % 4 != 0 { return Err(()) }
-    while row < lines.len() {
-        for j in 0.. {
-            if j >= 1 { break; }
+    for r in 0.. {
+        let row = r * 4;
+        if row + 4 > lines.len() { return Err(()) }
+        for c in 0.. {
+            let col = c * 3;
+            if col == lines[row].len() { break }
+            if lines[row..row+4].iter().any(|r| col + 3 > r.len()) {
+                return Err(())
+            }
+            result += get_digit(
+                lines[row..row+4]
+                    .iter()
+                    .map(|l| l[col..col+3].to_string())
+                    .collect());
         }
-        println!("\n{}", &lines[row..(row+3)].join("\n"));
-        row += 4;
+        if row+4 == lines.len() { break }
+        result += ",";
     }
-    Ok(get_digit(input))
+    Ok(result)
 }
 
-fn get_digit(input: &str) -> String {
-    match input {
+fn get_digit(input: Vec<String>) -> &'static str {
+    match &*input.join("\n") {
+        " _ \n| |\n|_|\n   " => "0",
         "   \n  |\n  |\n   " => "1",
+        " _ \n _|\n|_ \n   " => "2",
+        " _ \n _|\n _|\n   " => "3",
+        "   \n|_|\n  |\n   " => "4",
+        " _ \n|_ \n _|\n   " => "5",
+        " _ \n|_ \n|_|\n   " => "6",
+        " _ \n  |\n  |\n   " => "7",
+        " _ \n|_|\n|_|\n   " => "8",
+        " _ \n|_|\n _|\n   " => "9",
         _ => "?",
-    }.to_string()
+    }
 }
