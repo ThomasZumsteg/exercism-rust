@@ -40,7 +40,6 @@ fn test_gt() {
 }
 
 #[test]
-#[ignore]
 fn test_lt() {
     for slice_2 in BIGS.windows(2) {
         assert!(decimal(slice_2[0]) < decimal(slice_2[1]));
@@ -49,7 +48,6 @@ fn test_lt() {
 }
 
 #[test]
-#[ignore]
 fn test_add() {
     assert_eq!(decimal("0.1") + decimal("0.2"), decimal("0.3"));
     assert_eq!(decimal(BIGS[0]) + decimal(BIGS[1]), decimal(BIGS[2]));
@@ -57,7 +55,6 @@ fn test_add() {
 }
 
 #[test]
-#[ignore]
 fn test_sub() {
     assert_eq!(decimal(BIGS[2]) - decimal(BIGS[1]), decimal(BIGS[0]));
     assert_eq!(decimal(BIGS[2]) - decimal(BIGS[0]), decimal(BIGS[1]));
