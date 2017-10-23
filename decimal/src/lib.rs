@@ -1,53 +1,49 @@
 use std::ops::{Mul, Add, Sub};
 use std::cmp::Ordering;
 
+type Digit = u8;
+const Base: usize = 10;
+
 #[derive(PartialEq, Debug)]
 pub struct Decimal { 
+    negative: bool,
     power: usize,
-    digits: Vec<u32> 
+    digits: Vec<Digit> 
 }
 
 impl Decimal {
     pub fn try_from(chars: &str) -> Option<Decimal> {
-        let mut digits = Vec::new();
+        let mut digits: Vec<Digit> = Vec::new();
         let mut power: usize = 0;
         for (i, digit) in chars.chars().rev().enumerate() {
             if digit == '.' { power = i }
-            else if let Some(d) = digit.to_digit(10) { digits.insert(0, d) }
-            else { return None }
+            else if let Some(d) = digit.to_digit(Base as u32) { 
+                digits.insert(0, d as Digit) 
+            } else { return None }
         };
-        println!("{:?} ^ -{:?}", digits, power);
-        Some(Decimal { power: power, digits: digits })
+        Some(Decimal { negative: false, power: power, digits: digits })
     }
+
+    fn digits(&self, power: usize) -> Option<Vec<Digit>> { None }
 }
+
 
 impl Add for Decimal {
     type Output = Decimal;
     fn add(self, other: Decimal) -> Decimal { 
-        if self.power < other.power { return other.add(self) }
-
-        let mut digits: Vec<_> = Vec::new();
+        let mut digits: Vec<Digit> = Vec::new();
         let mut carry = 0;
-        for (a, b) in self.digits.iter().zip(other.digits.iter()) {
-            digits.push((a + b + carry) % 10);
-            carry = (a + b + carry) / 10;
+        for (&a, &b) in self.digits.iter().zip(other.digits.iter()).rev() {
+            digits.push((a + b + carry) % (Base as u8));
+            let carry = (a + b + carry) / (Base as u8);
         }
-        if carry != 0 { digits.push(carry) }
-        Decimal{ digits: digits, power: self.power }
+        Decimal{ negative: false, digits: digits, power: self.power }
     }
 }
 
 impl Sub for Decimal {
     type Output = Decimal;
-    fn sub(self, other: Decimal) -> Decimal { 
-        let mut digits: Vec<_> = Vec::new();
-        let mut carry = 0;
-        for (a, b) in self.digits.iter().rev().zip(other.digits.iter().rev()) {
-            digits.insert(0, (a - b - carry) % 10);
-            carry = (a - b - carry) / 10;
-        }
-        Decimal { digits: digits, power: self.power }
-    } 
+    fn sub(self, other: Decimal) -> Decimal { unimplemented!() } 
 }
 
 impl Mul for Decimal {
