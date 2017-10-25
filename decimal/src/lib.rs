@@ -1,5 +1,5 @@
 use std::ops::{Mul, Add, Sub};
-use std::cmp::{Ordering, max};
+use std::cmp::{Ordering, max, min};
 use std::iter;
 
 type Digit = u8;
@@ -36,19 +36,27 @@ impl Decimal {
             self.digits.iter().cloned().zip(other_digits).collect()
         }
     }
+
+    fn abs(&self) -> Decimal {
+        Decimal { power: self.power, digits: self.digits.clone(), negative: false }
+    }
+
+    fn new() -> Decimal { Decimal { digits: Vec::new(), power: 0, negative: false } }
 }
 
 
 impl Add for Decimal {
     type Output = Decimal;
     fn add(self, other: Decimal) -> Decimal { 
-        let mut result = Decimal { 
-            digits: Vec::new(),
-            power: max(self.power, other.power),
-            negative: false
-        };
+        let mut result = Decimal::new();
+        result.power = min(self.power, other.power);
+
+        if self.negative && other.negative { result.negative = true; }
+        else if self.negative { return other.sub(self.abs()) }
+        else if other.negative { return self.sub(other.abs()) }
+
         let mut carry = 0;
-        for (&a, &b) in self.digits.iter().zip(other.digits.iter()).rev() {
+        for (a, b) in self.zip_digits(&other) {
             result.digits.push((a + b + carry) % (Base as u8));
             let carry = (a + b + carry) / (Base as u8);
         }
@@ -58,7 +66,21 @@ impl Add for Decimal {
 
 impl Sub for Decimal {
     type Output = Decimal;
-    fn sub(self, other: Decimal) -> Decimal { unimplemented!() } 
+    fn sub(self, other: Decimal) -> Decimal {
+        let mut result = Decimal::new();
+        result.power = max(self.power, other.power);
+        let mut carry = 0;
+        for (a, b) in self.zip_digits(&other) {
+            if a >= b + carry {
+                result.digits.push(a - b - carry);
+                carry = 0;
+            } else {
+                result.digits.push(a + 10 - b - carry);
+                carry = 1;
+            }
+        }
+        result
+    } 
 }
 
 impl Mul for Decimal {
