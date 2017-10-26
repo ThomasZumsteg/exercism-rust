@@ -8,7 +8,7 @@ const Base: usize = 10;
 #[derive(PartialEq, Debug)]
 pub struct Decimal { 
     negative: bool,
-    power: usize,
+    power: isize,
     digits: Vec<Digit> 
 }
 
@@ -21,16 +21,16 @@ impl Decimal {
             number.negative = true;
         }
         for (i, digit) in chars[start..].chars().rev().enumerate() {
-            if digit == '.' { number.power = i }
+            if digit == '.' { number.power = -(i as isize) }
             else if let Some(d) = digit.to_digit(Base as u32) { 
-                number.digits.insert(0, d as Digit) 
+                number.digits.push(d as Digit) 
             } else { return None }
         };
         Some(number)
     }
 
     fn zip_digits(&self, other: &Decimal) -> Vec<(Digit, Digit)> { 
-        if self.power > other.power { other.zip_digits(&self) }
+        if self.power < other.power { other.zip_digits(&self) }
         else {
             let other_digits = other.digits.iter().cloned().chain(iter::repeat(0));
             self.digits.iter().cloned().zip(other_digits).collect()
@@ -85,7 +85,25 @@ impl Sub for Decimal {
 
 impl Mul for Decimal {
     type Output = Decimal;
-    fn mul(self, other: Decimal) -> Decimal { unimplemented!() }
+    fn mul(self, other: Decimal) -> Decimal {
+        println!("{:?} * {:?}", self, other);
+        let mut result = Decimal::new();
+        result.digits = vec![0];
+        result.power = self.power;
+        for (p, a) in self.digits.iter().enumerate() {
+            let mut step = Decimal::new();
+            step.power = (p as isize) + self.power;
+            let mut carry = 0;
+            for b in &other.digits {
+                step.digits.push((a * b + carry) % 10);
+                carry = (a * b + carry) / 10;
+            }
+            if carry > 0 { step.digits.push(carry); }
+            println!("{:?}:{:?}",result, step);
+            result = step.add(result);
+        }
+        result
+    }
 }
 
 impl PartialOrd for Decimal {
