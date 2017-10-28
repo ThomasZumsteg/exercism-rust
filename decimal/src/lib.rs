@@ -48,7 +48,6 @@ impl Decimal {
             result.digits = other.digits.clone();
             result.digits.extend(iter::repeat(0).take((diff-1) as usize));
             result.power = this.power;
-            // println!("{:?} : {:?}", this.digits, result.digits);
             Decimal::make_digits(this, &result)
         } else {
             result.digits = this.digits.clone();
