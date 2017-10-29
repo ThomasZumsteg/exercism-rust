@@ -24,7 +24,7 @@ impl Decimal {
         for (i, digit) in chars[start..].chars().rev().enumerate() {
             if digit == '.' { number.power = -(i as isize) }
             else if let Some(d) = digit.to_digit(BASE as u32) { 
-                number.digits.insert(0, d as Digit) 
+                number.digits.push(d as Digit) 
             } else { return None }
         };
         Some(number.clean())
@@ -32,8 +32,8 @@ impl Decimal {
 
     fn make_digits(this: &Decimal, other: &Decimal) -> Vec<(Digit, Digit)> { 
         let mut result = Vec::new();
-        for i in 0..max(this.digits.len(), other.digits.len()) {
-            // println!("{:?}:{:?}", this.digits.get(i), other.digits.get(i));
+        let (this_len, other_len) = (this.digits.len(), other.digits.len());
+        for i in 0..max(this_len, other_len) {
             result.push((
                     *this.digits.get(i).unwrap_or(&0),
                     *other.digits.get(i).unwrap_or(&0)));
@@ -45,16 +45,16 @@ impl Decimal {
         let mut result = Decimal::new();
         let diff = this.power - other.power;
         if diff > 0 {
-            result.digits = other.digits.clone();
-            result.digits.extend(iter::repeat(0).take((diff-1) as usize));
+
+            result.digits = iter::repeat(0).take(diff as usize)
+                .chain(this.digits.clone()).collect();
+            result.power = other.power;
+            Decimal::make_digits(&result, other)
+        } else {
+            result.digits = iter::repeat(0).take(-diff as usize)
+                .chain(other.digits.clone()).collect();
             result.power = this.power;
             Decimal::make_digits(this, &result)
-        } else {
-            result.digits = this.digits.clone();
-            result.digits.extend(iter::repeat(0).take((1-diff) as usize));
-            result.power = other.power;
-            // println!("{:?} : {:?}", result.digits, other.digits);
-            Decimal::make_digits(&result, other)
         }
     }
 
@@ -68,11 +68,11 @@ impl Decimal {
         let mut result = self.clone();
         while let Some(&d) = result.digits.last() {
             if d != 0 { break; }
-            result.power += 1;
             result.digits.pop();
         }
         while let Some(&d) = result.digits.first() {
             if d != 0 { break }
+            result.power += 1;
             result.digits.remove(0);
         }
         if result.digits == [] { 
@@ -98,7 +98,7 @@ impl Add for Decimal {
         else if other.negative { return self.sub(other.abs()) }
 
         let mut carry = 0;
-        for (a, b) in Decimal::make_equal_digits(&self, &other) {
+        for (a, b) in Decimal::make_equal_digits(&self.clean(), &other.clean()) {
             result.digits.push((a + b + carry) % BASE);
             carry = (a + b + carry) / BASE;
         }
@@ -114,7 +114,7 @@ impl Sub for Decimal {
         let mut result = Decimal::new();
         result.power = min(self.power, other.power);
         let mut carry = 0;
-        for (a, b) in Decimal::make_equal_digits(&self, &other) {
+        for (a, b) in Decimal::make_equal_digits(&self.clean(), &other.clean()) {
             if a >= b + carry {
                 result.digits.push(a - b - carry);
                 carry = 0;
@@ -133,17 +133,17 @@ impl Mul for Decimal {
     fn mul(self, other: Decimal) -> Decimal {
         let mut result = Decimal::new();
         result.digits = vec![0];
-        result.power = self.power;
-        for (p, a) in self.digits.iter().enumerate() {
+        result.power = self.power + other.power;
+        for (p, a) in self.clean().digits.iter().enumerate() {
             let mut step = Decimal::new();
             step.power = (p as isize) + self.power;
             let mut carry = 0;
-            for b in &other.digits {
-                step.digits.insert(0, (a * b + carry) % BASE);
+            for b in &other.clean().digits {
+                step.digits.push((a * b + carry) % BASE);
                 carry = (a * b + carry) / BASE;
             }
             if carry > 0 { step.digits.push(carry); }
-            result = step.add(result);
+            result = step.clean().add(result);
         }
         println!("{} * {} = {}", self, other, result);
         result.clean()
@@ -152,17 +152,20 @@ impl Mul for Decimal {
 
 impl PartialEq for Decimal {
     fn eq(&self, other: &Decimal) -> bool {
-        // println!("{}:{}", self, other);
         self.clean().partial_cmp(&other.clean()) == Some(Ordering::Equal)
     }
 }
 
 impl PartialOrd for Decimal {
     fn partial_cmp(&self, other: &Decimal) -> Option<Ordering> { 
-        // println!("{}:{}", self, other);
+        if self.negative && !other.negative { return Some(Ordering::Less) }
+        else if !self.negative && other.negative { return Some(Ordering::Greater) }
+
         for &(a, b) in Decimal::make_equal_digits(self, other).iter().rev() {
-            // println!("{}:{}", a, b);
-            if a != b { return a.partial_cmp(&b) }
+            if a != b { 
+                if !self.negative { return a.partial_cmp(&b) }
+                else { return b.partial_cmp(&a) }
+            }
         }
         Some(Ordering::Equal)
     }
@@ -170,7 +173,8 @@ impl PartialOrd for Decimal {
 
 impl fmt::Display for Decimal {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let num = self.digits.iter().map(|d| d.to_string()).collect::<Vec<String>>().join("");
+        let num = self.digits.iter().rev()
+            .map(|d| d.to_string()).collect::<Vec<String>>().join("");
         if self.negative {
             write!(f, "-{}x10^{}", num, self.power)
         } else {
