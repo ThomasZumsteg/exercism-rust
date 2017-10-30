@@ -20,7 +20,7 @@ impl Decimal {
         if chars.starts_with("-") {
             start = 1;
             number.negative = true;
-        }
+        } else if chars.starts_with("+") { start = 1; }
         for (i, digit) in chars[start..].chars().rev().enumerate() {
             if digit == '.' { number.power = -(i as isize) }
             else if let Some(d) = digit.to_digit(BASE as u32) { 
@@ -58,9 +58,9 @@ impl Decimal {
         }
     }
 
-    fn abs(&self) -> Decimal {
+    fn flip_sign(&self) -> Decimal {
         let mut result = self.clone();
-        result.negative = false;
+        result.negative = !self.negative;
         result
     }
 
@@ -94,8 +94,8 @@ impl Add for Decimal {
         result.power = min(self.power, other.power);
 
         if self.negative && other.negative { result.negative = true; }
-        else if self.negative { return other.sub(self.abs()) }
-        else if other.negative { return self.sub(other.abs()) }
+        else if self.negative { return other.sub(self.flip_sign()) }
+        else if other.negative { return self.sub(other.flip_sign()) }
 
         let mut carry = 0;
         for (a, b) in Decimal::make_equal_digits(&self.clean(), &other.clean()) {
@@ -111,6 +111,9 @@ impl Add for Decimal {
 impl Sub for Decimal {
     type Output = Decimal;
     fn sub(self, other: Decimal) -> Decimal {
+        if other.negative { return self.add(other.flip_sign()) }
+
+        if self < other { return other.sub(self).flip_sign() }
         let mut result = Decimal::new();
         result.power = min(self.power, other.power);
         let mut carry = 0;
@@ -145,6 +148,8 @@ impl Mul for Decimal {
             if carry > 0 { step.digits.push(carry); }
             result = step.clean().add(result);
         }
+        result.negative = self.negative != other.negative;
+
         println!("{} * {} = {}", self, other, result);
         result.clean()
     }

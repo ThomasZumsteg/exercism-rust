@@ -167,7 +167,6 @@ fn test_negatives() {
 }
 
 #[test]
-#[ignore]
 fn test_explicit_positive() {
     assert_eq!(decimal("+1"), decimal("1"));
     assert_eq!(decimal("+2.0") - decimal("-0002.0"), decimal("4"));
