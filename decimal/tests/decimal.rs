@@ -173,14 +173,12 @@ fn test_explicit_positive() {
 }
 
 #[test]
-#[ignore]
 fn test_multiply_by_negative() {
     assert_eq!(decimal("5") * decimal("-0.2"), decimal("-1"));
     assert_eq!(decimal("-20") * decimal("-0.2"), decimal("4"));
 }
 
 #[test]
-#[ignore]
 fn test_simple_partial_cmp() {
     assert!(decimal("1.0") < decimal("1.1"));
     assert!(decimal("0.00000000000000000000001") > decimal("-20000000000000000000000000000"));
