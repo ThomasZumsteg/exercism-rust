@@ -32,8 +32,7 @@ impl Decimal {
 
     fn make_digits(this: &Decimal, other: &Decimal) -> Vec<(Digit, Digit)> { 
         let mut result = Vec::new();
-        let (this_len, other_len) = (this.digits.len(), other.digits.len());
-        for i in 0..max(this_len, other_len) {
+        for i in 0..max(this.digits.len(), other.digits.len()) {
             result.push((
                     *this.digits.get(i).unwrap_or(&0),
                     *other.digits.get(i).unwrap_or(&0)));
@@ -43,19 +42,14 @@ impl Decimal {
 
     fn make_equal_digits(this: &Decimal, other: &Decimal) -> Vec<(Digit, Digit)> {
         let mut result = Decimal::new();
-        let diff = this.power - other.power;
-        if diff > 0 {
-
-            result.digits = iter::repeat(0).take(diff as usize)
-                .chain(this.digits.clone()).collect();
-            result.power = other.power;
-            Decimal::make_digits(&result, other)
-        } else {
-            result.digits = iter::repeat(0).take(-diff as usize)
-                .chain(other.digits.clone()).collect();
-            result.power = this.power;
-            Decimal::make_digits(this, &result)
+        if this.power < other.power {
+            return Decimal::make_equal_digits(other, this)
+                .iter().map(|&(a, b)| (b, a)).collect()
         }
+        result.digits = iter::repeat(0).take((this.power - other.power) as usize)
+            .chain(this.digits.clone()).collect();
+        result.power = other.power;
+        Decimal::make_digits(&result, other)
     }
 
     fn flip_sign(&self) -> Decimal {
@@ -91,19 +85,20 @@ impl Add for Decimal {
     type Output = Decimal;
     fn add(self, other: Decimal) -> Decimal { 
         let mut result = Decimal::new();
-        result.power = min(self.power, other.power);
+        let (num_a, num_b) = (self.clean(), other.clean());
 
-        if self.negative && other.negative { result.negative = true; }
-        else if self.negative { return other.sub(self.flip_sign()) }
-        else if other.negative { return self.sub(other.flip_sign()) }
+        result.power = min(num_a.power, num_b.power);
+
+        if num_a.negative && num_b.negative { result.negative = true; }
+        else if num_a.negative { return num_b.sub(num_a.flip_sign()) }
+        else if num_b.negative { return num_a.sub(num_b.flip_sign()) }
 
         let mut carry = 0;
-        for (a, b) in Decimal::make_equal_digits(&self.clean(), &other.clean()) {
+        for (a, b) in Decimal::make_equal_digits(&num_a, &num_b) {
             result.digits.push((a + b + carry) % BASE);
             carry = (a + b + carry) / BASE;
         }
-        if carry != 0 { result.digits.insert(0, carry) }
-        println!("{} + {} = {}", self, other, result);
+        if carry != 0 { result.digits.push(carry) }
         result.clean()
     }
 }
@@ -112,12 +107,13 @@ impl Sub for Decimal {
     type Output = Decimal;
     fn sub(self, other: Decimal) -> Decimal {
         if other.negative { return self.add(other.flip_sign()) }
+        else if self < other { return other.sub(self).flip_sign() }
 
-        if self < other { return other.sub(self).flip_sign() }
         let mut result = Decimal::new();
-        result.power = min(self.power, other.power);
+        let (num_a, num_b) = (self.clean(), other.clean());
+        result.power = min(num_a.power, num_b.power);
         let mut carry = 0;
-        for (a, b) in Decimal::make_equal_digits(&self.clean(), &other.clean()) {
+        for (a, b) in Decimal::make_equal_digits(&num_a, &num_b) {
             if a >= b + carry {
                 result.digits.push(a - b - carry);
                 carry = 0;
@@ -126,7 +122,6 @@ impl Sub for Decimal {
                 carry = 1;
             }
         }
-        println!("{} - {} = {}", self, other, result);
         result.clean()
     } 
 }
@@ -135,22 +130,22 @@ impl Mul for Decimal {
     type Output = Decimal;
     fn mul(self, other: Decimal) -> Decimal {
         let mut result = Decimal::new();
-        result.digits = vec![0];
-        result.power = self.power + other.power;
-        for (p, a) in self.clean().digits.iter().enumerate() {
+        let (num_a, num_b) = (self.clean(), other.clean());
+
+        let power = num_a.power + num_b.power;
+        result.power = power;
+        for (p, a) in num_a.digits.iter().enumerate() {
             let mut step = Decimal::new();
-            step.power = (p as isize) + self.power;
+            step.power = (p as isize) + power;
             let mut carry = 0;
-            for b in &other.clean().digits {
+            for b in &num_b.digits {
                 step.digits.push((a * b + carry) % BASE);
                 carry = (a * b + carry) / BASE;
             }
             if carry > 0 { step.digits.push(carry); }
-            result = step.clean().add(result);
+            result = step.add(result);
         }
-        result.negative = self.negative != other.negative;
-
-        println!("{} * {} = {}", self, other, result);
+        result.negative = num_a.negative != num_b.negative;
         result.clean()
     }
 }

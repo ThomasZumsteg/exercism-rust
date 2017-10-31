@@ -188,123 +188,103 @@ fn test_simple_partial_cmp() {
 // these tests are designed to ensure correctness of implementations for which the
 // integer and fractional parts of the number are stored separately
 #[test]
-#[ignore]
 fn test_carry_into_integer() {
     assert_eq!(decimal("0.901") + decimal("0.1"), decimal("1.001"))
 }
 
 #[test]
-#[ignore]
 fn test_carry_into_fractional_with_digits_to_right() {
     assert_eq!(decimal("0.0901") + decimal("0.01"), decimal("0.1001"))
 }
 
 #[test]
-#[ignore]
 fn test_add_carry_over_negative() {
     assert_eq!(decimal("-1.99") + decimal("-0.01"), decimal("-2.0"))
 }
 
 #[test]
-#[ignore]
 fn test_sub_carry_over_negative() {
     assert_eq!(decimal("-1.99") - decimal("0.01"), decimal("-2.0"))
 }
 
 #[test]
-#[ignore]
 fn test_add_carry_over_negative_with_fractional() {
     assert_eq!(decimal("-1.99") + decimal("-0.02"), decimal("-2.01"))
 }
 
 #[test]
-#[ignore]
 fn test_sub_carry_over_negative_with_fractional() {
     assert_eq!(decimal("-1.99") - decimal("0.02"), decimal("-2.01"))
 }
 
 #[test]
-#[ignore]
 fn test_carry_from_rightmost_one() {
     assert_eq!(decimal("0.09") + decimal("0.01"), decimal("0.1"))
 }
 
 #[test]
-#[ignore]
 fn test_carry_from_rightmost_more() {
     assert_eq!(decimal("0.099") + decimal("0.001"), decimal("0.1"))
 }
 
 #[test]
-#[ignore]
 fn test_carry_from_rightmost_into_integer() {
     assert_eq!(decimal("0.999") + decimal("0.001"), decimal("1.0"))
 }
 
 // test arithmetic borrow rules
 #[test]
-#[ignore]
 fn test_add_borrow() {
     assert_eq!(decimal("0.01") + decimal("-0.0001"), decimal("0.0099"))
 }
 
 #[test]
-#[ignore]
 fn test_sub_borrow() {
     assert_eq!(decimal("0.01") - decimal("0.0001"), decimal("0.0099"))
 }
 
 #[test]
-#[ignore]
 fn test_add_borrow_integral() {
     assert_eq!(decimal("1.0") + decimal("-0.01"), decimal("0.99"))
 }
 
 #[test]
-#[ignore]
 fn test_sub_borrow_integral() {
     assert_eq!(decimal("1.0") - decimal("0.01"), decimal("0.99"))
 }
 
 #[test]
-#[ignore]
 fn test_add_borrow_integral_zeroes() {
     assert_eq!(decimal("1.0") + decimal("-0.99"), decimal("0.01"))
 }
 
 #[test]
-#[ignore]
 fn test_sub_borrow_integral_zeroes() {
     assert_eq!(decimal("1.0") - decimal("0.99"), decimal("0.01"))
 }
 
 #[test]
-#[ignore]
 fn test_borrow_from_negative() {
     assert_eq!(decimal("-1.0") + decimal("0.01"), decimal("-0.99"))
 }
 
 #[test]
-#[ignore]
 fn test_add_into_fewer_digits() {
     assert_eq!(decimal("0.011") + decimal("-0.001"), decimal("0.01"))
 }
 
 // misc tests of arithmetic properties
 #[test]
-#[ignore]
 fn test_sub_into_fewer_digits() {
     assert_eq!(decimal("0.011") - decimal("0.001"), decimal("0.01"))
 }
 
 #[test]
-#[ignore]
 fn test_add_away_decimal() {
     assert_eq!(decimal("1.1") + decimal("-0.1"), decimal("1.0"))
 }
 
 #[test]
-#[ignore]
 fn test_sub_away_decimal() {
     assert_eq!(decimal("1.1") - decimal("0.1"), decimal("1.0"))
 }
