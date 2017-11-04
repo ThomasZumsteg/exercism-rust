@@ -1,11 +1,11 @@
 use std::cmp::Ordering;
-use std::fmt::Debug;
 
-pub fn find<T: Ord + Debug>(haystack:&[T], needle:T) -> Option<usize> {
+pub fn find<I, T>(items:I, needle:T) -> Option<usize> 
+    where I: AsRef<[T]>, T: Ord {
+    let haystack = items.as_ref();
     let (mut start, mut end) = (0, haystack.len());
     while start <= end {
         let middle = (end + start) / 2;
-        println!("{}:{}:{} -> {:?}:{:?}", start, middle, end, needle, haystack);
         if haystack.len() <= middle { return None }
         match needle.cmp(haystack.get(middle).unwrap()) {
             Ordering::Less => { 
