@@ -1,9 +1,11 @@
 pub fn convert(input: &str) -> Result<String, ()> {
     let lines = input.split("\n").map(|s| s.to_string()).collect::<Vec<String>>();
     let mut result = String::new();
+    // Make this an interator for row in lines.group_iter(grouper)
     for r in 0.. {
         let row = r * 4;
         if row + 4 > lines.len() { return Err(()) }
+        // Also here for digit in row.group_iter(grouper)
         for c in 0.. {
             let col = c * 3;
             if col == lines[row].len() { break }
