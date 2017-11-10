@@ -6,19 +6,13 @@ pub enum Bucket {
     Two
 }
 
-/// A struct to hold your results in.
 #[derive(PartialEq, Eq, Debug)]
 pub struct BucketStats {
-    /// The total number of "moves" it should take to reach the desired number of liters, including
-    /// the first fill.
     pub moves: u8,
-    /// Which bucket should end up with the desired number of liters? (Either "one" or "two")
     pub goal_bucket: Bucket,
-    /// How many liters are left in the other bucket?
     pub other_bucket: u8,
 }
 
-/// Solve the bucket problem
 pub fn solve(capacity_1: u8,
              capacity_2: u8,
              goal: u8,
@@ -26,12 +20,16 @@ pub fn solve(capacity_1: u8,
 {
     let mut queue = vec![ (0,0,0) ];
     let mut seen = HashSet::new();
+    match start_bucket {
+        &Bucket::One => seen.insert((0, capacity_2)),
+        &Bucket::Two => seen.insert((capacity_1, 0))
+    };
 
     while !queue.is_empty() {
         let (moves, b1, b2) = queue.remove(0);
         if seen.contains(&(b1, b2)) { continue }
+
         seen.insert((b1, b2));
-        println!("{}, {}/{}, {}/{}", moves, b1, capacity_1, b2, capacity_2);
 
         if b1 == goal {
             return BucketStats {
@@ -49,7 +47,7 @@ pub fn solve(capacity_1: u8,
 
         queue.push((moves+1,          0,         b2));
         queue.push((moves+1,         b1,          0));
-        queue.push((moves+1, capacity_1,          0));
+        queue.push((moves+1, capacity_1,         b2));
         queue.push((moves+1,         b1, capacity_2));
 
         let (t1_b1, t1_b2) = transfer(b1, b2, capacity_2);
