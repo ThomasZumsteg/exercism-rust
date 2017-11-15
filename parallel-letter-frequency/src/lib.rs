@@ -23,7 +23,7 @@ impl <S,T> ThreadPool<S,T>
     where S: Send {
     fn new<F>(f: F, n_workers: usize) -> ThreadPool<S,T>
         where 
-            F: FnOnce() + Send + 'static {
+            F: Fn() + Clone + Send + 'static {
         let (job_tx, job_rx) = mpsc::channel::<S>();
         let (result_tx, result_rx) = mpsc::channel::<T>();
         let mut pool: ThreadPool<S,T> = ThreadPool { 
@@ -33,8 +33,13 @@ impl <S,T> ThreadPool<S,T>
         };
         let thread_rx = Arc::new(job_rx);
         for _ in 0..n_workers {
-            pool.threads.push(thread::spawn(|| {
-            }));
+            let this_func = f.clone();
+            let this_rx = Arc::clone(&thread_rx);
+            pool.threads.push(thread::spawn(move || {
+                while true { 
+                    let job = this_rx.lock().unwrap().recv().unwrap();
+                    this_func(); 
+                }}));
         }
         pool
     }
