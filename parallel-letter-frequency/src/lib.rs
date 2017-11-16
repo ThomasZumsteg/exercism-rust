@@ -1,46 +1,58 @@
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::thread;
-use std::sync::mpsc;
-use std::sync::Arc;
+use std::sync;
 
-struct ThreadPool<S,T> {
-    jobs: mpsc::Sender<S>,
-    results: mpsc::Receiver<T>,
-    threads: Vec<thread::JoinHandle<()>>,
+pub fn frequency(lines: &[&str], n_workers: usize) -> HashMap<char, usize> {
+    let mut result = HashMap::new();
+    let pool = MapPool::new(n_workers, &frequency_job);
+    for line in lines { result.merge(frequency_job(line)); }
+    result
 }
 
-pub fn frequency(lines: &[&str], _: usize) -> HashMap<char, usize> {
+fn frequency_job(line: &str) -> HashMap<char, usize> {
     let mut result = HashMap::new();
-    for line in lines {
-        for c in line.to_lowercase().chars() {
-            if c.is_alphabetic() { *result.entry(c).or_insert(0) += 1; }
-        }
+    for c in line.to_lowercase().chars() {
+        if c.is_alphabetic() { *result.entry(c).or_insert(0) += 1 }
     }
     result
 }
 
-impl <S,T> ThreadPool<S,T> 
-    where S: Send {
-    fn new<F>(f: F, n_workers: usize) -> ThreadPool<S,T>
-        where 
-            F: Fn() + Clone + Send + 'static {
-        let (job_tx, job_rx) = mpsc::channel::<S>();
-        let (result_tx, result_rx) = mpsc::channel::<T>();
-        let mut pool: ThreadPool<S,T> = ThreadPool { 
-            jobs: job_tx,
-            results: result_rx,
-            threads: Vec::with_capacity(n_workers),
-        };
-        let thread_rx = Arc::new(job_rx);
-        for _ in 0..n_workers {
-            let this_func = f.clone();
-            let this_rx = Arc::clone(&thread_rx);
-            pool.threads.push(thread::spawn(move || {
-                while true { 
-                    let job = this_rx.lock().unwrap().recv().unwrap();
-                    this_func(); 
-                }}));
+trait Merge<T> {
+    fn merge(&mut self, other: T);
+}
+
+impl <K,V> Merge<HashMap<K,V>> for HashMap<K,V>
+    where K: std::cmp::Eq + std::hash::Hash,
+          V: std::ops::AddAssign {
+    fn merge(&mut self, other: HashMap<K,V>) {
+        for (k, v) in other {
+            match self.entry(k) {
+                Entry::Occupied(mut o) => { *o.into_mut() += v },
+                Entry::Vacant(mut o) => { o.insert(v); }
+            };
         }
-        pool
+    }
+}
+
+struct MapPool;
+
+impl MapPool {
+    fn new<S,T>(workers: usize, f: &Fn(S) -> T) {
+        // Create channels to send and recieve jobs from
+        let (jobs_tx, jobs_rx) = sync::mpsc::channel::<S>();
+        let jobs_queue = sync::Arc::new(sync::Mutex::new(&jobs_rx));
+        let (result_tx, result_rx) = sync::mpsc::channel::<T>();
+        // Create the workers
+        for _ in 0..workers {
+            let this_jobs = sync::Arc::clone(&jobs_queue);
+            thread::spawn(|| {
+            });
+        }
+    }
+
+    fn exit(&self) {
+        // Quit all the workers
+        unimplemented!()
     }
 }
