@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::thread;
-use std::sync;
+use std::sync::{Arc, Mutex, mpsc};
 
 pub fn frequency(lines: &[&str], n_workers: usize) -> HashMap<char, usize> {
     let mut result = HashMap::new();
-    let pool = MapPool::new(n_workers, &frequency_job);
-    for line in lines { result.merge(frequency_job(line)); }
+    let pool = MapPool::new(n_workers, frequency_job);
+    for job in pool.do_work(lines) { result.merge(job); }
     result
 }
 
@@ -35,24 +35,21 @@ impl <K,V> Merge<HashMap<K,V>> for HashMap<K,V>
     }
 }
 
-struct MapPool;
+struct MapPool<S, T> {
+    inputs: Vec<S>,
+    results: mpsc::Receiver<T>
+}
 
-impl MapPool {
-    fn new<S,T>(workers: usize, f: &Fn(S) -> T) {
-        // Create channels to send and recieve jobs from
-        let (jobs_tx, jobs_rx) = sync::mpsc::channel::<S>();
-        let jobs_queue = sync::Arc::new(sync::Mutex::new(&jobs_rx));
-        let (result_tx, result_rx) = sync::mpsc::channel::<T>();
-        // Create the workers
-        for _ in 0..workers {
-            let this_jobs = sync::Arc::clone(&jobs_queue);
-            thread::spawn(|| {
-            });
-        }
+impl <S, T> MapPool <S, T> {
+    fn new<F>(n_workers: usize, f: F) -> MapPool<S, T>
+        where
+            F: Fn(S) -> T + Sync + 'static {
+        unimplemented!()
     }
 
-    fn exit(&self) {
-        // Quit all the workers
+    fn do_work<I>(self, work: I) -> Iterator<Item=T>
+        where
+            I: IntoIterator<Item=S> {
         unimplemented!()
     }
 }
