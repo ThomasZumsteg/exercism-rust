@@ -5,8 +5,8 @@ use std::sync::{Arc, Mutex, mpsc};
 
 pub fn frequency(lines: &[&str], n_workers: usize) -> HashMap<char, usize> {
     let mut result = HashMap::new();
-    let pool = MapPool::new(n_workers, frequency_job);
-    for job in pool.do_work(lines) { result.merge(job); }
+    let pool = ThreadPool::new(n_workers, frequency_job);
+    for job in pool.do_jobs(lines.to_vec()) { result.merge(job); }
     result
 }
 
@@ -28,28 +28,53 @@ impl <K,V> Merge<HashMap<K,V>> for HashMap<K,V>
     fn merge(&mut self, other: HashMap<K,V>) {
         for (k, v) in other {
             match self.entry(k) {
-                Entry::Occupied(mut o) => { *o.into_mut() += v },
-                Entry::Vacant(mut o) => { o.insert(v); }
+                Entry::Occupied(o) => { *o.into_mut() += v },
+                Entry::Vacant(o) => { o.insert(v); }
             };
         }
     }
 }
 
-struct MapPool<S, T> {
-    inputs: Vec<S>,
-    results: mpsc::Receiver<T>
+struct ThreadPool<S,T> {
+    f: fn(S) -> T,
+    threads: Vec<thread::JoinHandle<usize>>,
 }
 
-impl <S, T> MapPool <S, T> {
-    fn new<F>(n_workers: usize, f: F) -> MapPool<S, T>
-        where
-            F: Fn(S) -> T + Sync + 'static {
+struct ThreadPoolIterator<T> {
+    rx: mpsc::Receiver<T>,
+}
+
+impl <S,T> IntoIterator for ThreadPool<S,T> {
+    type Item = T;
+    type IntoIter = ThreadPoolIterator<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
         unimplemented!()
     }
+}
 
-    fn do_work<I>(self, work: I) -> Iterator<Item=T>
-        where
+impl <S,T> ThreadPool<S,T> {
+    fn new(n_workers: usize, f: fn(S) -> T) -> ThreadPool<S,T> {
+        let mut pool = ThreadPool { f: f, threads: Vec::new() };
+        pool
+    }
+
+    fn do_jobs<I>(&self, jobs: I) -> ThreadPoolIterator<T>
+        where 
             I: IntoIterator<Item=S> {
-        unimplemented!()
+        let (tx, rx) = mpsc::channel();
+        for job in jobs {
+            tx.send((self.f)(job)); 
+        }
+        ThreadPoolIterator { rx: rx }
+    }
+}
+
+impl <T> Iterator for ThreadPoolIterator<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<T> {
+        if let Ok(result) = self.rx.recv() { Some(result) }
+        else { None }
     }
 }
