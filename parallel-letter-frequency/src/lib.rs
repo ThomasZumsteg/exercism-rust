@@ -2,17 +2,12 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::thread;
 use std::fmt::Debug;
-use std::sync::{Arc, Mutex, mpsc};
+use std::sync::{mpsc, Arc, Mutex};
 
 pub fn frequency(lines: &[&str], n_workers: usize) -> HashMap<char, usize> {
     let mut result = HashMap::new();
-    println!("Creating pool");
-    let pool = ThreadPool::new(n_workers, frequency_job);
-    println!("Done");
     let jobs = lines.iter().map(|s| s.to_string());
-    println!("Starting jobs");
-    for job in pool.do_jobs(jobs) { 
-        println!("Merging {:?}", job);
+    for job in map_jobs(n_workers, frequency_job, jobs.collect()) { 
         result.merge(job);
     }
     result
@@ -43,57 +38,22 @@ impl <K,V> Merge<HashMap<K,V>> for HashMap<K,V>
     }
 }
 
-struct ThreadPool<S,T> 
-{
-    f: fn(S) -> T,
-    threads: Vec<thread::JoinHandle<()>>,
-    queue: Vec<mpsc::Sender<S>>,
-    rx: mpsc::Receiver<T>,
-}
-
-impl <'a,S,T> ThreadPool<S,T>
+fn  map_jobs<S,T>(n_workers: usize, map_job: fn(S) -> T, jobs: Vec<S>) -> 
+    mpsc::Receiver<T>
     where
         S: Debug + Send + 'static,
         T: Debug + Send + 'static,
 {
-    fn new(n_workers: usize, f: fn(S) -> T) -> ThreadPool<S,T> {
-        let (results_tx, results_rx) = mpsc::channel::<T>();
-        let mut pool = ThreadPool { 
-            f: f,
-            threads: Vec::new(),
-            queue: Vec::new(),
-            rx: results_rx,
-        };
-        for i in 0..n_workers {
-            let (jobs_tx, jobs_rx) = mpsc::channel::<S>();
-            let thread_results = results_tx.clone();
-            pool.threads.push(thread::spawn(move || {
-                while let Ok(item) = jobs_rx.recv() {
-                    println!("Thread {}: Doing work", i);
-                    thread_results.send(f(item));
-                }
-            }));
-            pool.queue.push(jobs_tx);
-        }
-        pool
+    let (results_tx, results_rx) = mpsc::channel::<T>();
+    let jobs = Arc::new(Mutex::new(jobs));
+    for _ in 0..n_workers {
+        let thread_results = results_tx.clone();
+        let queue_lock= jobs.clone();
+        thread::spawn(move || {
+            while let Some(item) = queue_lock.lock().unwrap().pop() {
+                thread_results.send(map_job(item)).unwrap();
+            }
+        });
     }
-
-    fn do_jobs<I>(&self, jobs: I) -> &Self
-        where 
-            I: IntoIterator<Item=S> {
-        println!("Doing jobs");
-        let (tx, rx) = mpsc::channel();
-        for job in jobs {
-            tx.send((self.f)(job)); 
-        }
-        self
-    }
+    results_rx
 }
-
-impl <S,T> Iterator for ThreadPool<S,T> {
-    type Item = T;
-    fn next(&mut self) -> Option<T> {
-        unimplemented!()
-    }
-}
-
