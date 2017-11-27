@@ -182,7 +182,6 @@ fn over_error() {
 }
 
 #[test]
-#[ignore]
 fn defining_a_new_word() {
     let mut f = Forth::new();
     assert!(f.eval(": CoUnT 1 2 3 ;").is_ok());
