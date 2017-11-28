@@ -190,7 +190,6 @@ fn defining_a_new_word() {
 }
 
 #[test]
-#[ignore]
 fn redefining_an_existing_word() {
     let mut f = Forth::new();
     assert!(f.eval(": foo dup ;").is_ok());
@@ -200,7 +199,6 @@ fn redefining_an_existing_word() {
 }
 
 #[test]
-#[ignore]
 fn redefining_an_existing_built_in_word() {
     let mut f = Forth::new();
     assert!(f.eval(": swap dup ;").is_ok());
@@ -209,7 +207,6 @@ fn redefining_an_existing_built_in_word() {
 }
 
 #[test]
-#[ignore]
 fn defining_words_with_odd_characters() {
     let mut f = Forth::new();
     assert!(f.eval(": € 220371 ; €").is_ok());
@@ -217,7 +214,6 @@ fn defining_words_with_odd_characters() {
 }
 
 #[test]
-#[ignore]
 fn defining_a_number() {
     let mut f = Forth::new();
     assert_eq!(
@@ -227,7 +223,6 @@ fn defining_a_number() {
 }
 
 #[test]
-#[ignore]
 fn malformed_word_definition() {
     let mut f = Forth::new();
     assert_eq!(
@@ -245,7 +240,6 @@ fn malformed_word_definition() {
 }
 
 #[test]
-#[ignore]
 fn calling_non_existing_word() {
     let mut f = Forth::new();
     assert_eq!(

@@ -29,15 +29,16 @@ impl  Forth {
 
     pub fn eval(&mut self, input: &str) -> ForthResult {
         let lower = input.to_lowercase();
-        let mut tokens: Vec<&str> = lower
+        let mut tokens: Vec<String> = lower
             .split(|c:char| c.is_whitespace() || c.is_control())
+            .map(|s| s.to_string())
             .collect();
         while !tokens.is_empty() {
-            try!(match tokens.remove(0) {
+            try!(match tokens.remove(0).as_ref() {
                 t if self.words.contains_key(t) => {
                     for d in self.words.get(t).unwrap() {
-                        tokens.insert(0, d);
-                    }
+                        tokens.insert(0, d.to_string());
+                    };
                     Ok(())
                 },
                 ":" => self.add_def(&mut tokens),
@@ -120,16 +121,18 @@ impl  Forth {
         } else { Err(Error::StackUnderflow) }
     }
 
-    fn add_def(&mut self, tokens: &mut Vec<&str>) -> ForthResult {
+    fn add_def(&mut self, tokens: &mut Vec<String>) -> ForthResult {
+        if tokens.is_empty() { return Err(Error::InvalidWord) }
         let mut def = Vec::new();
         let word = tokens.remove(0);
+        if word.parse::<Value>().is_ok() { return Err(Error::InvalidWord) }
         while !tokens.is_empty() {
             let token = tokens.remove(0);
             if token == ";" { 
                 self.words.insert(word.to_string(), def);
                 return Ok(())
             }
-            def.push(token.to_string());
+            def.insert(0, token.to_string());
         }
         Err(Error::InvalidWord)
     }
