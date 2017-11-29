@@ -1,0 +1,41 @@
+#[derive(Debug, PartialEq)]
+pub struct CircularBuffer<T> {
+    buffer: Vec<T>,
+    capacity: usize,
+    write_head: usize,
+    read_head: usize,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Error {
+    EmptyBuffer,
+    FullBuffer
+}
+
+impl <T> CircularBuffer<T> {
+    pub fn new(size: usize) -> CircularBuffer<T> {
+        CircularBuffer{ 
+            buffer: Vec::with_capacity(size),
+            capacity: size,
+            read_head: 0,
+            write_head: 0,
+        }
+    }
+
+    pub fn read(&mut self) -> Result<T,Error> { 
+        if self.read_head > self.write_head {
+            return Err(Error::EmptyBuffer)
+        }
+        self.read_head += 1;
+        Ok(self.buffer[self.read_head % self.capacity])
+    }
+
+    pub fn write(&mut self, item: T) -> Result<(),Error> {
+        self.buffer[self.write_head % self.capacity] = item;
+        self.i += 1;
+        Ok(())
+    }
+    pub fn clear(&mut self) { unimplemented!() }
+    pub fn overwrite(&mut self, _: T) { unimplemented!() }
+}
+
