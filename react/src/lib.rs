@@ -1,25 +1,28 @@
+use std::collections::HashMap;
+
 #[allow(unused_variables)]
 
 // Because these are passed without & to some functions,
 // it will probably be necessary for these two types to be Copy.
-pub type CellID = ();
+pub type CellID = usize;
 pub type CallbackID = ();
 
 pub struct Reactor<T> {
     // Just so that the compiler doesn't complain about an unused type parameter.
     // You probably want to delete this field.
-    dummy: T,
+    cells: Vec<T>,
 }
 
 // You are guaranteed that Reactor will only be tested against types that are Copy + PartialEq.
 impl <T: Copy + PartialEq> Reactor<T> {
     pub fn new() -> Self {
-        unimplemented!()
+        Reactor{ cells: Vec::new() }
     }
 
     // Creates an input cell with the specified initial value, returning its ID.
     pub fn create_input(&mut self, initial: T) -> CellID {
-        unimplemented!()
+        self.cells.push(initial);
+        self.cells.len() - 1
     }
 
     // Creates a compute cell with the specified dependencies and compute function.
@@ -45,7 +48,8 @@ impl <T: Copy + PartialEq> Reactor<T> {
     // It turns out this introduces a significant amount of extra complexity to this exercise.
     // We chose not to cover this here, since this exercise is probably enough work as-is.
     pub fn value(&self, id: CellID) -> Option<T> {
-        unimplemented!()
+        if let Some(v) = self.cells.get(id) { Some(v.clone()) }
+        else { None }
     }
 
     // Sets the value of the specified input cell.
@@ -58,7 +62,10 @@ impl <T: Copy + PartialEq> Reactor<T> {
     //
     // As before, that turned out to add too much extra complexity.
     pub fn set_value(&mut self, id: CellID, new_value: T) -> Result<(), ()> {
-        unimplemented!()
+        if let Some(v) = self.cells.get_mut(id) {
+            *v = new_value;
+            Ok(())
+        } else { Err(()) }
     }
 
     // Adds a callback to the specified compute cell.
