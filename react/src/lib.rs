@@ -10,18 +10,19 @@ pub type CallbackID = ();
 pub struct Reactor<T> {
     // Just so that the compiler doesn't complain about an unused type parameter.
     // You probably want to delete this field.
-    cells: Vec<T>,
+    cells: Vec<Box<Fn() -> T + 'static>>,
+
 }
 
 // You are guaranteed that Reactor will only be tested against types that are Copy + PartialEq.
-impl <T: Copy + PartialEq> Reactor<T> {
+impl <T: Copy + PartialEq + 'static> Reactor<T> {
     pub fn new() -> Self {
         Reactor{ cells: Vec::new() }
     }
 
     // Creates an input cell with the specified initial value, returning its ID.
     pub fn create_input(&mut self, initial: T) -> CellID {
-        self.cells.push(initial);
+        self.cells.push(Box::new(move || initial));
         self.cells.len() - 1
     }
 
@@ -37,7 +38,10 @@ impl <T: Copy + PartialEq> Reactor<T> {
     // This means that you may assume, without checking, that if the dependencies exist at creation
     // time they will continue to exist as long as the Reactor exists.
     pub fn create_compute<F: Fn(&[T]) -> T>(&mut self, dependencies: &[CellID], compute_func: F) -> Result<CellID, ()> {
-        unimplemented!()
+        self.cells.push(Box::new(move || {
+            unimplemented!()
+        }));
+        Ok(self.cells.len() - 1)
     }
 
     // Retrieves the current value of the cell, or None if the cell does not exist.
@@ -48,7 +52,7 @@ impl <T: Copy + PartialEq> Reactor<T> {
     // It turns out this introduces a significant amount of extra complexity to this exercise.
     // We chose not to cover this here, since this exercise is probably enough work as-is.
     pub fn value(&self, id: CellID) -> Option<T> {
-        if let Some(v) = self.cells.get(id) { Some(v.clone()) }
+        if let Some(f) = self.cells.get(id) { Some(f()) }
         else { None }
     }
 
@@ -63,7 +67,7 @@ impl <T: Copy + PartialEq> Reactor<T> {
     // As before, that turned out to add too much extra complexity.
     pub fn set_value(&mut self, id: CellID, new_value: T) -> Result<(), ()> {
         if let Some(v) = self.cells.get_mut(id) {
-            *v = new_value;
+            *v = Box::new(move || new_value);
             Ok(())
         } else { Err(()) }
     }

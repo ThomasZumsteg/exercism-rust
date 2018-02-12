@@ -25,7 +25,6 @@ fn error_setting_a_nonexistent_input_cell() {
 }
 
 #[test]
-#[ignore]
 fn compute_cells_calculate_initial_value() {
     let mut reactor = Reactor::new();
     let input = reactor.create_input(1);
