@@ -39,6 +39,7 @@ impl <T: Copy + PartialEq + 'static> Reactor<T> {
     // time they will continue to exist as long as the Reactor exists.
     pub fn create_compute<F: Fn(&[T]) -> T>(&mut self, dependencies: &[CellID], compute_func: F) -> Result<CellID, ()> {
         self.cells.push(Box::new(move || {
+
             unimplemented!()
         }));
         Ok(self.cells.len() - 1)
