@@ -11,7 +11,6 @@ pub struct Reactor<T> {
     // Just so that the compiler doesn't complain about an unused type parameter.
     // You probably want to delete this field.
     cells: Vec<Box<Fn() -> T + 'static>>,
-
 }
 
 // You are guaranteed that Reactor will only be tested against types that are Copy + PartialEq.
@@ -39,7 +38,6 @@ impl <T: Copy + PartialEq + 'static> Reactor<T> {
     // time they will continue to exist as long as the Reactor exists.
     pub fn create_compute<F: Fn(&[T]) -> T>(&mut self, dependencies: &[CellID], compute_func: F) -> Result<CellID, ()> {
         self.cells.push(Box::new(move || {
-
             unimplemented!()
         }));
         Ok(self.cells.len() - 1)
