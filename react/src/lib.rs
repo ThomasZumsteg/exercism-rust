@@ -37,8 +37,14 @@ impl <T: Copy + PartialEq + 'static> Reactor<T> {
     // This means that you may assume, without checking, that if the dependencies exist at creation
     // time they will continue to exist as long as the Reactor exists.
     pub fn create_compute<F: Fn(&[T]) -> T>(&mut self, dependencies: &[CellID], compute_func: F) -> Result<CellID, ()> {
+        let mut vals = Vec::new();
+        for &d in dependencies {
+            if let Some(v) = self.value(d) { vals.push(v) }
+            else { return Err(()) }
+        }
+        let val = compute_func(&vals);
         self.cells.push(Box::new(move || {
-            unimplemented!()
+            val
         }));
         Ok(self.cells.len() - 1)
     }
