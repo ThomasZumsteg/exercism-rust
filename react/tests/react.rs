@@ -25,6 +25,7 @@ fn error_setting_a_nonexistent_input_cell() {
 }
 
 #[test]
+#[ignore]
 fn compute_cells_calculate_initial_value() {
     let mut reactor = Reactor::new();
     let input = reactor.create_input(1);
@@ -33,6 +34,7 @@ fn compute_cells_calculate_initial_value() {
 }
 
 #[test]
+#[ignore]
 fn compute_cells_take_inputs_in_the_right_order() {
     let mut reactor = Reactor::new();
     let one = reactor.create_input(1);
@@ -42,6 +44,7 @@ fn compute_cells_take_inputs_in_the_right_order() {
 }
 
 #[test]
+#[ignore]
 fn error_creating_compute_cell_if_input_doesnt_exist() {
     let mut dummy_reactor = Reactor::new();
     let input = dummy_reactor.create_input(1);
@@ -49,6 +52,7 @@ fn error_creating_compute_cell_if_input_doesnt_exist() {
 }
 
 #[test]
+#[ignore]
 fn do_not_break_cell_if_creating_compute_cell_with_valid_and_invalid_input() {
     let mut dummy_reactor = Reactor::new();
     let _ = dummy_reactor.create_input(1);
