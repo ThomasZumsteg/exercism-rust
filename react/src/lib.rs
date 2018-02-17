@@ -1,34 +1,26 @@
-use std::collections::HashMap;
-
 #[allow(unused_variables)]
 
 // Because these are passed without & to some functions,
 // it will probably be necessary for these two types to be Copy.
 pub type CellID = usize;
-pub type CallbackID = ();
-struct Cell<T> {
-    func: Box<Fn(&[T]) -> T>,
-    dependencies: Vec<CellID>
-}
-
+pub type CallbackID = usize;
 pub struct Reactor<T> {
-    // Just so that the compiler doesn't complain about an unused type parameter.
-    // You probably want to delete this field.
-    cells: Vec<Cell<T>>,
+    cells: Vec<(Box<Fn(Vec<CellID>)>, Vec<CallbackID>)>,
+    callbacks: Vec<Box<FnMut(T) -> ()>>
 }
 
 // You are guaranteed that Reactor will only be tested against types that are Copy + PartialEq.
-impl <T: Copy + PartialEq + 'static> Reactor<T> {
+impl <T: Copy + PartialEq> Reactor<T> {
     pub fn new() -> Self {
-        Reactor{ cells: Vec::new() }
+        Reactor { cells: Vec::new(), callbacks: Vec::new() }
     }
 
     // Creates an input cell with the specified initial value, returning its ID.
     pub fn create_input(&mut self, initial: T) -> CellID {
-        let first = Box::new(move |_: &[T]| -> T { initial });
-        let cell = Cell { func: first, dependencies: Vec::new()};
-        self.cells.push(cell);
-        return self.cells.len() - 1
+        let func = Box::new(move |_| ());
+        self.cells.push((func, Vec::new()));
+        self.cells.len() - 1
+
     }
 
     // Creates a compute cell with the specified dependencies and compute function.
@@ -54,12 +46,7 @@ impl <T: Copy + PartialEq + 'static> Reactor<T> {
     // It turns out this introduces a significant amount of extra complexity to this exercise.
     // We chose not to cover this here, since this exercise is probably enough work as-is.
     pub fn value(&self, id: CellID) -> Option<T> {
-        let cell = self.cells.get(id).unwrap(); 
-        let mut values = Vec::new();
-        for &d in &cell.dependencies {
-            values.push(self.value(d).unwrap());
-        }
-        Some((*cell.func)(&values))
+        unimplemented!()
     }
 
     // Sets the value of the specified input cell.
@@ -72,12 +59,7 @@ impl <T: Copy + PartialEq + 'static> Reactor<T> {
     //
     // As before, that turned out to add too much extra complexity.
     pub fn set_value(&mut self, id: CellID, new_value: T) -> Result<(), ()> {
-        if let Some(ref mut cell) = self.cells.get_mut(id) {
-            cell.func = Box::new(move |_: &[T]| -> T { new_value });;
-            Ok(())
-        } else {
-            Err(())
-        }
+        unimplemented!()
     }
 
     // Adds a callback to the specified compute cell.
