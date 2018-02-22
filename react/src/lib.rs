@@ -3,14 +3,14 @@
 // Because these are passed without & to some functions,
 // it will probably be necessary for these two types to be Copy.
 pub type CellID = usize;
-pub type CallbackID = usize;
+pub type CallbackID = (CellID, usize);
 
 pub struct Reactor<T> {
     id: usize,
     values: Vec<T>,
     update: Vec<Option<Box<Fn(&[T]) -> T>>>,
     dependencies: Vec<Vec<CellID>>,
-    callbacks: Vec<Vec<Box<Fn(T)>>>,
+    callbacks: Vec<Vec<Box<FnMut(T) -> ()>>>,
 }
 
 // You are guaranteed that Reactor will only be tested against types that are Copy + PartialEq.
@@ -65,8 +65,11 @@ impl <T: Copy + PartialEq> Reactor<T> {
         }
     }
 
-    pub fn add_callback<F: FnMut(T) -> ()>(&mut self, id: CellID, callback: F) -> Result<CallbackID, ()> {
-        unimplemented!()
+    pub fn add_callback<F: FnMut(T) -> () + 'static>(&mut self, id: CellID, callback: F) -> Result<CallbackID, ()> {
+        if let Some(callbacks) = self.callbacks.get_mut(id) {
+            callbacks.push(Box::new(callback)); 
+            Ok((id, callbacks.len()-1))
+        } else { Err(()) }
     }
 
     pub fn remove_callback(&mut self, cell: CellID, callback: CallbackID) -> Result<(), ()> {
