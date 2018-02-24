@@ -71,6 +71,7 @@ fn compute_cells_update_value_when_dependencies_are_changed() {
 }
 
 #[test]
+#[ignore]
 fn compute_cells_can_depend_on_other_compute_cells() {
     let mut reactor = Reactor::new();
     let input = reactor.create_input(1);
@@ -83,6 +84,7 @@ fn compute_cells_can_depend_on_other_compute_cells() {
 }
 
 #[test]
+#[ignore]
 fn error_setting_a_compute_cell() {
     let mut reactor = Reactor::new();
     let input = reactor.create_input(1);
