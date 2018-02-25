@@ -71,7 +71,6 @@ fn compute_cells_update_value_when_dependencies_are_changed() {
 }
 
 #[test]
-#[ignore]
 fn compute_cells_can_depend_on_other_compute_cells() {
     let mut reactor = Reactor::new();
     let input = reactor.create_input(1);
@@ -84,7 +83,6 @@ fn compute_cells_can_depend_on_other_compute_cells() {
 }
 
 #[test]
-#[ignore]
 fn error_setting_a_compute_cell() {
     let mut reactor = Reactor::new();
     let input = reactor.create_input(1);
@@ -93,7 +91,6 @@ fn error_setting_a_compute_cell() {
 }
 
 #[test]
-#[ignore]
 fn compute_cells_fire_callbacks() {
     // This is a bit awkward, but the closure mutably borrows `values`.
     // So we have to end its borrow by taking reactor out of scope.

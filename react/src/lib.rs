@@ -1,4 +1,5 @@
 use std::fmt;
+use std::collections::HashMap;
 
 #[allow(unused_variables)]
 
@@ -9,8 +10,22 @@ pub type CallbackID = (CellID, usize);
 
 struct Cell<T> {
     value: T,
-    function: Option<Box<Fn(&Reactor<T>) -> Result<T, ()>>>,
-    callbacks: Vec<Box<FnMut(T)>>,
+    function: Option<Box<Fn(&Reactor<T>, &[CellID]) -> Result<T, ()>>>,
+    dependencies: Vec<CellID>,
+    callbacks: HashMap<usize, Box<FnMut(T) -> ()>>,
+    callback_counter: usize,
+}
+
+impl <T> Cell<T> {
+    fn new(value: T) -> Self {
+        Cell {
+            value: value,
+            function: None,
+            dependencies: Vec::new(),
+            callbacks: HashMap::new(),
+            callback_counter: 0,
+        }
+    }
 }
 
 impl <T: fmt::Debug> fmt::Debug for Cell<T> {
@@ -24,24 +39,21 @@ pub struct Reactor<T> {
 }
 
 // You are guaranteed that Reactor will only be tested against types that are Copy + PartialEq.
-impl <T: fmt::Debug + Copy + PartialEq> Reactor<T> {
+impl <'reactor, T: fmt::Debug + Copy + PartialEq> Reactor<T> {
     pub fn new() -> Self {
         Reactor { cells: Vec::new() }
     }
 
     // Creates an input cell with the specified initial value, returning its ID.
     pub fn create_input(&mut self, initial: T) -> CellID {
-        self.cells.push(Cell {
-            value: initial,
-            function: None,
-            callbacks: Vec::new() });
+        self.cells.push(Cell::new(initial));
         self.cells.len() - 1
     }
 
-    pub fn create_compute<F: Fn(&[T]) -> T>(&mut self, dependencies: &[CellID], compute_func: F) -> Result<CellID, ()> {
-        let function: Box<Fn(&Reactor<T>) -> Result<T, ()>> = 
-            Box::new( |reactor| {
-                let mut values = Vec::new();
+    pub fn create_compute<F: Fn(&[T]) -> T + 'static>(&mut self, dependencies: &[CellID], compute_func: F) -> Result<CellID, ()> {
+        let function: Box<Fn(&Reactor<T>, &[CellID]) -> Result<T, ()>> = 
+            Box::new(move |reactor, dependencies| {
+                let mut values: Vec<T> = Vec::new();
                 for &d in dependencies {
                     match reactor.cells.get(d) {
                         Some(v) => values.push(v.value),
@@ -50,12 +62,14 @@ impl <T: fmt::Debug + Copy + PartialEq> Reactor<T> {
                 }
                 Ok(compute_func(&values))
             });
-        match function(self) {
+        match function(self, dependencies) {
             Ok(initial) => {
                 self.cells.push(Cell {
                     value: initial,
-                    function: None,
-                    callbacks: Vec::new(),
+                    function: Some(function),
+                    dependencies: dependencies.to_vec(),
+                    callback_counter: 0,
+                    callbacks: HashMap::new(),
                 });
                 Ok(self.cells.len() - 1)
             },
@@ -79,8 +93,13 @@ impl <T: fmt::Debug + Copy + PartialEq> Reactor<T> {
         result
     }
 
-    pub fn add_callback<F: FnMut(T) -> ()>(&mut self, id: CellID, callback: F) -> Result<CallbackID, ()> {
-        unimplemented!()
+    pub fn add_callback<F: FnMut(T) -> () + 'reactor>(&mut self, id: CellID, callback: F) -> Result<CallbackID, ()> {
+        let mut cell = match self.cells.get_mut(id) {
+            Some(c) => c,
+            _ => return Err(())
+        };
+        cell.callbacks.insert(cell.callback_counter, Box::new(callback));
+        unimplemented!();
     }
 
     pub fn remove_callback(&mut self, cell: CellID, callback: CallbackID) -> Result<(), ()> {
@@ -89,13 +108,21 @@ impl <T: fmt::Debug + Copy + PartialEq> Reactor<T> {
 
     fn update(&mut self) {
         for i in 0..self.cells.len() {
-            let mut cell = self.cells.get_mut(i).unwrap();
-            let function = match cell.function {
-                Some(ref function) => function,
-                _ => continue
-            };
-            let new_value = function(&self).unwrap();
-            cell.value = new_value;
+            let new_value;
+            let old_value;
+            {
+                let cell = self.cells.get(i).unwrap();
+                if let Some(ref function) = cell.function {
+                    old_value = cell.value;
+                    new_value = function(&self, &cell.dependencies).unwrap();
+                } else {
+                    continue;
+                }
+            }
+            if old_value != new_value {
+                let mut cell = self.cells.get_mut(i).unwrap();
+                cell.value = new_value;
+            }
         }
     }
 }
