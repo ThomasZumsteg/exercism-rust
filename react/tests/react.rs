@@ -33,6 +33,7 @@ fn compute_cells_calculate_initial_value() {
 }
 
 #[test]
+#[ignore]
 fn compute_cells_take_inputs_in_the_right_order() {
     let mut reactor = Reactor::new();
     let one = reactor.create_input(1);
@@ -42,6 +43,7 @@ fn compute_cells_take_inputs_in_the_right_order() {
 }
 
 #[test]
+#[ignore]
 fn error_creating_compute_cell_if_input_doesnt_exist() {
     let mut dummy_reactor = Reactor::new();
     let input = dummy_reactor.create_input(1);
@@ -49,6 +51,7 @@ fn error_creating_compute_cell_if_input_doesnt_exist() {
 }
 
 #[test]
+#[ignore]
 fn do_not_break_cell_if_creating_compute_cell_with_valid_and_invalid_input() {
     let mut dummy_reactor = Reactor::new();
     let _ = dummy_reactor.create_input(1);
@@ -61,6 +64,7 @@ fn do_not_break_cell_if_creating_compute_cell_with_valid_and_invalid_input() {
 }
 
 #[test]
+#[ignore]
 fn compute_cells_update_value_when_dependencies_are_changed() {
     let mut reactor = Reactor::new();
     let input = reactor.create_input(1);
@@ -71,6 +75,7 @@ fn compute_cells_update_value_when_dependencies_are_changed() {
 }
 
 #[test]
+#[ignore]
 fn compute_cells_can_depend_on_other_compute_cells() {
     let mut reactor = Reactor::new();
     let input = reactor.create_input(1);
@@ -83,6 +88,7 @@ fn compute_cells_can_depend_on_other_compute_cells() {
 }
 
 #[test]
+#[ignore]
 fn error_setting_a_compute_cell() {
     let mut reactor = Reactor::new();
     let input = reactor.create_input(1);
@@ -91,6 +97,7 @@ fn error_setting_a_compute_cell() {
 }
 
 #[test]
+#[ignore]
 fn compute_cells_fire_callbacks() {
     // This is a bit awkward, but the closure mutably borrows `values`.
     // So we have to end its borrow by taking reactor out of scope.
