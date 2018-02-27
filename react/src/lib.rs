@@ -9,7 +9,7 @@ pub type CallbackID = (CellID, usize);
 
 struct Cell<'cell, T> {
     value: T,
-    function: Option<Box<Fn(&Reactor<T>) -> Result<T, ()> + 'cell>>,
+    function: Option<Box<FnMut(&Reactor<T>) -> Result<T, ()> + 'cell>>,
     callbacks: HashMap<usize, Box<FnMut(T) -> ()>>,
     callback_counter: usize,
 }
@@ -25,8 +25,8 @@ impl <'cell, T> Cell<'cell, T> {
     }
 }
 
-pub struct Reactor<'cell, T> {
-    cells: Vec<Cell<'cell, T>>
+pub struct Reactor<'r, T> {
+    cells: Vec<Cell<'r, T>>
 }
 
 // You are guaranteed that Reactor will only be tested against types that are Copy + PartialEq.
@@ -41,18 +41,19 @@ impl<'r, T: Copy + PartialEq> Reactor<'r, T> {
         self.cells.len() - 1
     }
 
-    pub fn create_compute<F: Fn(&[T]) -> T>(&'r mut self, dependencies: &[CellID], compute_func: F) -> Result<CellID, ()> {
-        let function = |reactor: &Reactor<T>| {
+    pub fn create_compute<F: Fn(&[T]) -> T + 'r>(&'r mut self, dependencies: &'r [CellID], compute_func: F) -> Result<CellID, ()> {
+        let mut function: Box<FnMut(&Reactor<T>) -> Result<T, ()>> = 
+            Box::new(move |reactor| {
                 let mut values = Vec::new();
                 for &d in dependencies {
                     if let Some(value) = reactor.value(d) { values.push(value); }
                     else { return Err(()); }
                 }
                 Ok(compute_func(&values))
-            };
+            });
         // let function = |_: &Reactor<T>| Err(());
-        let mut cell: Cell<T> = Cell::new(function(&self)?);
-        cell.function = Some(Box::new(function));
+        let mut cell: Cell<'r, T> = Cell::new(function(&self)?);
+        cell.function = Some(function);
         self.cells.push(cell);
         Ok(self.cells.len() - 1)
     }
@@ -85,8 +86,8 @@ impl<'r, T: Copy + PartialEq> Reactor<'r, T> {
         for id in 0..self.cells.len() {
             let new_value = {
                 let cell = self.cells.get(id).unwrap();
-                if let Some(ref function) = cell.function {
-                    function(self).unwrap()
+                if cell.function.is_some() {
+                    cell.function(self).unwrap()
                 } else { continue; }
             };
             let mut cell = self.cells.get_mut(id).unwrap();
