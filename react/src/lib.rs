@@ -84,14 +84,23 @@ impl<'r, T: Copy + PartialEq> Reactor<'r, T> {
 
     fn update(&mut self) {
         for id in 0..self.cells.len() {
-            let new_value = {
-                let cell = self.cells.get(id).unwrap();
-                if cell.function.is_some() {
-                    cell.function(self).unwrap()
-                } else { continue; }
-            };
-            let mut cell = self.cells.get_mut(id).unwrap();
-            cell.value = new_value;
+            let function;
+            let new_value;
+            {
+                // replace function on cell with None
+                let mut cell = self.cells.get_mut(id).unwrap();
+                function = cell.function.take();
+            }
+            if function.is_none() { continue; }
+            {
+                // assign new_value to cell.value
+                new_value = function.unwrap()(&self).unwrap();
+            }
+            {
+                let mut cell = self.cells.get_mut(id).unwrap();
+                cell.value = new_value;
+                // cell.function = function;
+            }
         }
     }
 }
