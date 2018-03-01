@@ -1,3 +1,4 @@
+use std::fmt;
 use std::collections::HashMap;
 
 #[allow(unused_variables)]
@@ -7,17 +8,19 @@ use std::collections::HashMap;
 pub type CellID = usize;
 pub type CallbackID = (CellID, usize);
 
-struct Cell<'cell, T> {
+struct Cell<T> {
     value: T,
-    function: Option<Box<FnMut(&Reactor<T>) -> Result<T, ()> + 'cell>>,
+    function: Option<Box<Fn(&[T]) -> T>>,
+    dependencies: Vec<CellID>,
     callbacks: HashMap<usize, Box<FnMut(T) -> ()>>,
     callback_counter: usize,
 }
 
-impl <'cell, T> Cell<'cell, T> {
+impl <T> Cell<T> {
     fn new(value: T) -> Self {
         Cell {
             value: value,
+            dependencies: Vec::new(),
             function: None,
             callbacks: HashMap::new(),
             callback_counter: 0,
@@ -25,12 +28,12 @@ impl <'cell, T> Cell<'cell, T> {
     }
 }
 
-pub struct Reactor<'r, T> {
-    cells: Vec<Cell<'r, T>>
+pub struct Reactor<T> {
+    cells: Vec<Cell<T>>
 }
 
 // You are guaranteed that Reactor will only be tested against types that are Copy + PartialEq.
-impl<'r, T: Copy + PartialEq> Reactor<'r, T> {
+impl<T: fmt::Debug + Copy + PartialEq> Reactor<T> {
     pub fn new() -> Self {
         Reactor { cells: Vec::new() }
     }
@@ -41,21 +44,24 @@ impl<'r, T: Copy + PartialEq> Reactor<'r, T> {
         self.cells.len() - 1
     }
 
-    pub fn create_compute<F: Fn(&[T]) -> T + 'r>(&'r mut self, dependencies: &'r [CellID], compute_func: F) -> Result<CellID, ()> {
-        let mut function: Box<FnMut(&Reactor<T>) -> Result<T, ()>> = 
-            Box::new(move |reactor| {
-                let mut values = Vec::new();
-                for &d in dependencies {
-                    if let Some(value) = reactor.value(d) { values.push(value); }
-                    else { return Err(()); }
-                }
-                Ok(compute_func(&values))
-            });
-        // let function = |_: &Reactor<T>| Err(());
-        let mut cell: Cell<'r, T> = Cell::new(function(&self)?);
+    pub fn create_compute<F: Fn(&[T]) -> T + 'static>(&mut self, dependencies: &[CellID], compute_func: F) -> Result<CellID, ()> {
+        let function = Box::new(compute_func);
+        let value = self.compute_value(&function, dependencies);
+        let mut cell = Cell::new(value?);
         cell.function = Some(function);
+        cell.dependencies = dependencies.to_vec();
         self.cells.push(cell);
         Ok(self.cells.len() - 1)
+    }
+
+    fn compute_value<F: Fn(&[T]) -> T>(&self, compute_func: &Box<F>, dependencies: &[CellID]) -> Result<T, ()> {
+        let mut values = Vec::new();
+        for &d in dependencies {
+            if let Some(v) = self.value(d) {
+                values.push(v);
+            } else { return Err(()) }
+        }
+        Ok(compute_func(&values))
     }
 
     pub fn value(&self, id: CellID) -> Option<T> {
@@ -86,20 +92,23 @@ impl<'r, T: Copy + PartialEq> Reactor<'r, T> {
         for id in 0..self.cells.len() {
             let function;
             let new_value;
+            let dependencies;
             {
                 // replace function on cell with None
                 let mut cell = self.cells.get_mut(id).unwrap();
                 function = cell.function.take();
+                dependencies = cell.dependencies.clone();
             }
-            if function.is_none() { continue; }
-            {
+            if let Some(function) = function {
                 // assign new_value to cell.value
-                new_value = function.unwrap()(&self).unwrap();
-            }
-            {
+                let mut values = Vec::new();
+                for d in dependencies {
+                    values.push(self.value(d).unwrap());
+                }
+                new_value = function(&values);
                 let mut cell = self.cells.get_mut(id).unwrap();
                 cell.value = new_value;
-                // cell.function = function;
+                cell.function = Some(function);
             }
         }
     }
