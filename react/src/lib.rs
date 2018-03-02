@@ -6,17 +6,17 @@ use std::collections::HashMap;
 // Because these are passed without & to some functions,
 // it will probably be necessary for these two types to be Copy.
 pub type CellID = usize;
-pub type CallbackID = (CellID, usize);
+pub type CallbackID = usize;
 
-struct Cell<T> {
+struct Cell<'cell, T: 'cell> {
     value: T,
     function: Option<Box<Fn(&[T]) -> T>>,
     dependencies: Vec<CellID>,
-    callbacks: HashMap<usize, Box<FnMut(T) -> ()>>,
+    callbacks: HashMap<usize, Box<FnMut(T) -> () + 'cell>>,
     callback_counter: usize,
 }
 
-impl <T> Cell<T> {
+impl <'cell, T> Cell<'cell, T> {
     fn new(value: T) -> Self {
         Cell {
             value: value,
@@ -28,12 +28,12 @@ impl <T> Cell<T> {
     }
 }
 
-pub struct Reactor<T> {
-    cells: Vec<Cell<T>>
+pub struct Reactor<'reactor, T: 'reactor> {
+    cells: Vec<Cell<'reactor, T>>
 }
 
 // You are guaranteed that Reactor will only be tested against types that are Copy + PartialEq.
-impl<T: fmt::Debug + Copy + PartialEq> Reactor<T> {
+impl<'reactor, T: fmt::Debug + Copy + PartialEq> Reactor<'reactor, T> {
     pub fn new() -> Self {
         Reactor { cells: Vec::new() }
     }
@@ -80,12 +80,22 @@ impl<T: fmt::Debug + Copy + PartialEq> Reactor<T> {
         result
     }
 
-    pub fn add_callback<F: FnMut(T) -> ()>(&mut self, id: CellID, callback: F) -> Result<CallbackID, ()> {
-        unimplemented!();
+    pub fn add_callback<F: FnMut(T) -> () + 'reactor>(
+        &mut self, id: CellID, callback: F) -> Result<CallbackID, ()> {
+        if let Some(cell) = self.cells.get_mut(id) {
+            cell.callbacks.insert(cell.callback_counter, Box::new(callback));
+            cell.callback_counter += 1;
+            Ok(cell.callback_counter - 1)
+        } else { Err(()) }
     }
 
     pub fn remove_callback(&mut self, cell: CellID, callback: CallbackID) -> Result<(), ()> {
-        unimplemented!()
+        if let Some(cell) = self.cells.get_mut(cell) {
+            match cell.callbacks.remove(&callback) {
+                Some(_) => Ok(()),
+                None => Err(()),
+            }
+        } else { Err(()) }
     }
 
     fn update(&mut self) {
@@ -107,6 +117,11 @@ impl<T: fmt::Debug + Copy + PartialEq> Reactor<T> {
                 }
                 new_value = function(&values);
                 let mut cell = self.cells.get_mut(id).unwrap();
+                if new_value != cell.value {
+                    for call in cell.callbacks.values_mut() {
+                        call(new_value);
+                    }
+                }
                 cell.value = new_value;
                 cell.function = Some(function);
             }
