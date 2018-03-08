@@ -11,7 +11,6 @@ fn test_empty() {
 }
 
 #[test]
-#[ignore]
 fn test_no_trailing_comma() {
     let mut expected = HashMap::new();
     expected.insert(1, "one");
@@ -20,7 +19,6 @@ fn test_no_trailing_comma() {
 }
 
 #[test]
-#[ignore]
 fn test_trailing_comma() {
     let mut expected = HashMap::new();
     expected.insert('h', 89);
@@ -39,7 +37,6 @@ fn test_trailing_comma() {
 }
 
 #[test]
-#[ignore]
 fn test_nested() {
     let mut expected = HashMap::new();
     expected.insert("non-empty", {
