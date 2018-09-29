@@ -3,11 +3,11 @@ pub mod graph {
 
     pub mod graph_items {
         pub mod node {
-            #[derive(PartialEq, Debug)]
-            pub struct Node;
+            #[derive(PartialEq, Debug, Clone)]
+            pub struct Node { name: String }
             impl Node {
-                pub fn new(_: &str) -> Node {
-                    unimplemented!();
+                pub fn new(name: &str) -> Node {
+                    Node { name: name.to_string() } 
                 }
                 pub fn with_attrs(&self, _: &[(&str, &str); 1]) -> Self {
                     unimplemented!();
@@ -15,7 +15,7 @@ pub mod graph {
             }
         }
         pub mod edge {
-            #[derive(PartialEq, Debug)]
+            #[derive(PartialEq, Debug, Clone)]
             pub struct Edge;
             impl Edge {
                 pub fn new(_: &str, _: &str) -> Self {
@@ -27,6 +27,7 @@ pub mod graph {
             }
         }
     }
+    #[derive(Clone)]
     pub struct Graph {
         pub nodes: Vec<graph_items::node::Node>,
         pub edges: Vec<graph_items::edge::Edge>,
@@ -41,11 +42,14 @@ pub mod graph {
                 attrs: HashMap::new() }
         }
 
-        pub fn with_edges(&self, _: &[graph_items::edge::Edge]) -> Self {
-            unimplemented!();
+        pub fn with_nodes(mut self, nodes: &[graph_items::node::Node]) -> Self {
+            for node in nodes {
+                self.nodes.push(node.clone());
+            }
+            return self;
         }
 
-        pub fn with_nodes(&self, _: &[graph_items::node::Node]) -> Self {
+        pub fn with_edges(&self, _: &[graph_items::edge::Edge]) -> Self {
             unimplemented!();
         }
 

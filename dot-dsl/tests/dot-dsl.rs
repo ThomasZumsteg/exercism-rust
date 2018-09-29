@@ -18,7 +18,6 @@ fn test_empty_graph() {
 }
 
 #[test]
-#[ignore]
 fn test_graph_with_one_node() {
     let nodes = vec![Node::new("a")];
 
