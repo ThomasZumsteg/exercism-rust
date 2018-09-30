@@ -3,14 +3,22 @@ pub mod graph {
 
     pub mod graph_items {
         pub mod node {
+            use std::collections::HashMap;
+
             #[derive(PartialEq, Debug, Clone)]
-            pub struct Node { name: String }
+            pub struct Node {
+                name: String,
+                attrs: HashMap<String, String>
+            }
             impl Node {
                 pub fn new(name: &str) -> Node {
-                    Node { name: name.to_string() } 
+                    Node { name: name.to_string(), attrs: HashMap::new() } 
                 }
-                pub fn with_attrs(&self, _: &[(&str, &str); 1]) -> Self {
-                    unimplemented!();
+                pub fn with_attrs(mut self, attrs: &[(&str, &str); 1]) -> Self {
+                    for &(name, value) in attrs {
+                        self.attrs.insert(name.to_string(), value.to_string());
+                    }
+                    return self;
                 }
             }
         }
