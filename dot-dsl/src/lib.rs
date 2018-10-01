@@ -23,14 +23,26 @@ pub mod graph {
             }
         }
         pub mod edge {
+            use std::collections::HashMap;
+
             #[derive(PartialEq, Debug, Clone)]
-            pub struct Edge;
+            pub struct Edge {
+                from: String,
+                to: String,
+                attrs: HashMap<String, String>
+            }
             impl Edge {
-                pub fn new(_: &str, _: &str) -> Self {
-                    unimplemented!();
+                pub fn new(from: &str, to: &str) -> Self {
+                    return Edge {
+                        from: from.to_string(),
+                        to: to.to_string(),
+                        attrs: HashMap::new() };
                 }
-                pub fn with_attrs(&self, _: &[(&str, &str); 1]) -> Self {
-                    unimplemented!();
+                pub fn with_attrs(mut self, attrs: &[(&str, &str); 1]) -> Self {
+                    for &(key, val) in attrs {
+                        self.attrs.insert(key.to_string(), val.to_string());
+                    }
+                    return self;
                 }
             }
         }
@@ -57,12 +69,18 @@ pub mod graph {
             return self;
         }
 
-        pub fn with_edges(&self, _: &[graph_items::edge::Edge]) -> Self {
-            unimplemented!();
+        pub fn with_edges(mut self, edges: &[graph_items::edge::Edge]) -> Self {
+            for edge in edges {
+                self.edges.push(edge.clone());
+            }
+            return self;
         }
 
-        pub fn with_attrs(&self, _: &[(&str, &str)]) -> Self {
-            unimplemented!();
+        pub fn with_attrs(mut self, attrs: &[(&str, &str)]) -> Self {
+            for &(key, val) in attrs {
+                self.attrs.insert(key.to_string(), val.to_string());
+            }
+            return self;
         }
     }
 }
