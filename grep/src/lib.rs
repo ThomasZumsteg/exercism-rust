@@ -1,6 +1,8 @@
 extern crate failure;
 
 use failure::Error;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 
 /// While using raw slice of str to handle flags is convenient,
 /// in the real-world projects it is customary to use a struct,
@@ -10,22 +12,52 @@ use failure::Error;
 /// If you are curious about real-world implementation, refer to the `clap-rs` crate:
 /// https://github.com/kbknapp/clap-rs/blob/master/src/args/arg_matches.rs
 #[derive(Debug)]
-pub struct Flags;
+pub struct Flags {
+    line_numbers: bool,
+    case_sensitive: bool,
+    partial: bool,
+    list: bool,
+    matches: bool
+}
 
 impl Flags {
     pub fn new(flags: &[&str]) -> Self {
-        unimplemented!(
-            "Given the flags {:?} implement your own 'Flags' struct to handle flags-related logic",
-            flags
-        );
+        return Flags {
+            line_numbers: flags.contains(&"-n"),
+            case_sensitive: !flags.contains(&"-i"),
+            partial: !flags.contains(&"-x"),
+            list: flags.contains(&"-l"),
+            matches: !flags.contains(&"-v"),
+        };
     }
 }
 
 pub fn grep(pattern: &str, flags: &Flags, files: &[&str]) -> Result<Vec<String>, Error> {
-    unimplemented!(
-        "Search the files '{:?}' for '{}' pattern and save the matches in a vector. Your search logic should be aware of the given flags '{:?}'",
-        files,
-        pattern,
-        flags
-    );
+    let mut result = Vec::new();
+    for file in files {
+        let fh = File::open(file)?;
+        for (n, line) in BufReader::new(fh).lines().enumerate() {
+            if let Ok(mut text) = line {
+                let text_match = match (flags.partial, flags.case_sensitive) {
+                    (true, true) => text.contains(pattern),
+                    (true, false) => text
+                        .to_lowercase()
+                        .contains(pattern.to_lowercase().as_str()),
+                    (false, true) => text == pattern,
+                    (false, false) => text.to_lowercase() == pattern.to_lowercase(),
+                };
+
+                if flags.line_numbers { text = format!("{}:{}", n+1, text); }
+                if 1 < files.len() { text = format!("{}:{}", file, text); }
+
+                if (text_match && flags.matches) || (!text_match && !flags.matches) {
+                    if flags.list {
+                        result.push(file.to_string());
+                        break;
+                    } else { result.push(text); }
+                }
+            }
+        }
+    }
+    return Ok(result);
 }
